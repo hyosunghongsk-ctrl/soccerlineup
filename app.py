@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import random
 from streamlit_gsheets import GSheetsConnection
+from streamlit_sortables import sort_items
 
 # 페이지 설정
 st.set_page_config(page_title="조기축구 라인업 메이커", layout="wide")
@@ -19,7 +20,6 @@ def load_db():
             return pd.DataFrame(columns=["이름", "1순위포지션", "2순위포지션"])
         return df.dropna(how="all")
     except Exception as e:
-        # 💡 [수정된 부분] 진짜 에러 원인을 화면에 빨간 글씨로 띄워줍니다!
         st.error(f"🚨 구글 시트 연결 에러 상세 내용:\n\n{e}")
         st.info("위 에러 메시지를 복사해서 알려주시면 바로 해결해 드리겠습니다!")
         return pd.DataFrame(columns=["이름", "1순위포지션", "2순위포지션"])
@@ -89,7 +89,7 @@ with tab_manage:
         st.success("회원 명단이 구글 스프레드시트에 안전하게 동기화되었습니다.")
 
 # ==========================================
-# 탭 1: 오늘의 경기 (기존 라인업 로직과 동일)
+# 탭 1: 오늘의 경기 (드래그 앤 드롭 추가)
 # ==========================================
 with tab_match:
     st.header("🏃‍♂️ 오늘 참석자 선택")
@@ -99,35 +99,44 @@ with tab_match:
     else:
         all_players = st.session_state.db['이름'].tolist()
         
+        # 1단계: 순서 상관없이 일단 다 고르기
         selected_players = st.multiselect(
-            "오늘 참석한 회원들을 모두 골라주세요 (검색 가능):",
+            "1️⃣ 오늘 참석한 회원들을 모두 골라주세요 (순서 무관):",
             options=all_players
         )
         
         if selected_players:
             st.divider()
-            st.subheader("🕒 참석자 상세 정보 입력")
+            st.subheader("2️⃣ 도착 순서 맞추기 (드래그 앤 드롭 🖱️)")
+            st.info("💡 마우스로 이름을 클릭한 채 위아래로 끌어다 놓으세요! (가장 위가 1등, 가장 아래가 지각)")
+            
+            # 마법의 드래그 앤 드롭 정렬 기능!
+            ordered_players = sort_items(selected_players)
+            
+            st.divider()
+            st.subheader("3️⃣ 조기 귀가자 체크")
+            st.caption("도착 순서는 위에서 드래그한 대로 자동 부여되었습니다. 일찍 가는 사람의 쿼터 수만 수정해 주세요.")
             
             today_data = []
-            for i, name in enumerate(selected_players):
+            for i, name in enumerate(ordered_players):
                 player_info = st.session_state.db[st.session_state.db['이름'] == name].iloc[0]
                 today_data.append({
                     "이름": name,
                     "1순위": player_info["1순위포지션"],
                     "2순위": player_info["2순위포지션"],
-                    "도착순서": i + 1,
+                    "도착순서": i + 1, # 드래그한 순서대로 자동으로 1, 2, 3... 부여됨
                     "참여가능쿼터": 4
                 })
             
             today_df = pd.DataFrame(today_data)
             
+            # 도착순서는 자동 입력되므로 잠금(disabled) 처리
             edited_today_df = st.data_editor(
                 today_df,
-                disabled=["이름", "1순위", "2순위"],
+                disabled=["이름", "1순위", "2순위", "도착순서"],
                 hide_index=True,
                 use_container_width=True,
                 column_config={
-                    "도착순서": st.column_config.NumberColumn(min_value=1, step=1, required=True),
                     "참여가능쿼터": st.column_config.NumberColumn(min_value=1, max_value=4, step=1, required=True)
                 }
             )
