@@ -73,10 +73,11 @@ with tab_manage:
     st.subheader("📋 전체 등록 선수 목록")
     st.caption("표 안에서 직접 포지션을 변경하거나, 왼쪽 체크박스를 선택해 삭제(Del)할 수 있습니다.")
     
+    # 💡 에러 픽스: use_container_width=True 대신 width="stretch" 사용
     edited_db = st.data_editor(
         st.session_state.db,
         num_rows="dynamic",
-        use_container_width=True,
+        width="stretch",
         column_config={
             "1순위포지션": st.column_config.SelectboxColumn(options=POSITIONS, required=True),
             "2순위포지션": st.column_config.SelectboxColumn(options=POSITIONS, required=True),
@@ -131,11 +132,12 @@ with tab_match:
             today_df = pd.DataFrame(today_data)
             
             # 도착순서는 자동 입력되므로 잠금(disabled) 처리
+            # 💡 에러 픽스: use_container_width=True 대신 width="stretch" 사용
             edited_today_df = st.data_editor(
                 today_df,
                 disabled=["이름", "1순위", "2순위", "도착순서"],
                 hide_index=True,
-                use_container_width=True,
+                width="stretch",
                 column_config={
                     "참여가능쿼터": st.column_config.NumberColumn(min_value=1, max_value=4, step=1, required=True)
                 }
@@ -246,4 +248,6 @@ with tab_match:
                 st.subheader("📊 개인별 출전 요약")
                 summary_df = df[['이름', '도착순서', '참여가능쿼터', 'penalty_count']].rename(columns={'penalty_count': '키퍼/휴식 횟수'})
                 summary_df['실제 필드 뛴 쿼터수'] = summary_df['참여가능쿼터'] - summary_df['키퍼/휴식 횟수']
-                st.dataframe(summary_df, use_container_width=True)
+                
+                # 💡 에러 픽스: use_container_width=True 대신 width="stretch" 사용
+                st.dataframe(summary_df, width="stretch")

@@ -1,4 +1,5 @@
 streamlit
-pandas
+pandas<3.0.0
+pyarrow<24.0.0
 st-gsheets-connection
 streamlit-sortables
